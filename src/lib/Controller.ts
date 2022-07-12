@@ -1,13 +1,66 @@
-type NoteCallback = ( pitch : number, velocity : number ) => void;
+import { lerp } from "../utils";
+
+export enum Action {
+  Noop = 'Noop',
+  SceneToggle = 'SceneToggle',
+  SceneTrigger1 = 'SceneTrigger1',
+  SceneTrigger2 = 'SceneTrigger2',
+  SceneTrigger3 = 'SceneTrigger3',
+  SceneMod1 = 'SceneMod1',
+  SceneMod2 = 'SceneMod2',
+  SceneMod3 = 'SceneMod3',
+  EffectToggle = 'EffectToggle',
+  EffectTrigger1 = 'EffectTrigger1',
+  EffectTrigger2 = 'EffectTrigger2',
+  EffectTrigger3 = 'EffectTrigger3',
+  EffectMod1 = 'EffectMod1',
+  EffectMod2 = 'EffectMod2',
+  EffectMod3 = 'EffectMod3',
+};
+
+const NOTE_SCENE_ACTIONS =  [
+  Action.SceneToggle,
+  Action.SceneTrigger1,
+  Action.SceneTrigger2,
+  Action.SceneTrigger3,
+];
+const NOTE_EFFECT_ACTIONS =  [
+  Action.EffectToggle,
+  Action.EffectTrigger1,
+  Action.EffectTrigger2,
+  Action.EffectTrigger3,
+];
+const CONTROL_SCENE_ACTIONS =  [
+  Action.Noop,
+  Action.SceneMod1,
+  Action.SceneMod2,
+  Action.SceneMod3,
+];
+const CONTROL_EFFECT_ACTIONS =  [
+  Action.Noop,
+  Action.SceneMod1,
+  Action.SceneMod2,
+  Action.SceneMod3,
+];
+
+const MIDI_NOTE = 144;
+const MIDI_CONTROL = 176;
+const NUM_POSITIONS = 10;
+const NUM_TYPES = NUM_POSITIONS * 4;
+
+function getActionIndex( pitch : number ) : number {
+  return Math.floor( ( pitch % NUM_TYPES ) / NUM_POSITIONS )
+}
+
+type ActionCallback = ( action : Action, index : number, value : number ) => void;
 
 export default class Controller {
   private access : WebMidi.MIDIAccess | null = null;
   private input : WebMidi.MIDIInput | null = null;
-  private controls = new Map<number, number>();
-  private onNote? : NoteCallback;
   
-  constructor( onNote? : NoteCallback ) {
-    this.onNote = onNote;
+  constructor(
+    private onAction : ActionCallback,
+  ) {
   }
 
   get inputs() {
@@ -42,20 +95,40 @@ export default class Controller {
     await this.input.open();
   }
 
-  private onMIDIState( _ : WebMidi.MIDIConnectionEvent ) {
+  private processNote( pitch : number, velocity : number ) {
+    const index = pitch % NUM_POSITIONS;
+    const actionIndex = getActionIndex( pitch );
+    const action = ( pitch < NUM_TYPES )
+      ? NOTE_SCENE_ACTIONS[actionIndex]
+      : NOTE_EFFECT_ACTIONS[actionIndex];
+
+    this.onAction( action, index, velocity );
   }
 
+  private processControl( pitch : number, control : number ) {
+    const index = pitch % NUM_POSITIONS;
+    const value = lerp( control, 0, 127, 0.0, 1.0 );
+    const actionIndex = getActionIndex( pitch );
+    const action = ( pitch < NUM_TYPES )
+      ? CONTROL_SCENE_ACTIONS[actionIndex]
+      : CONTROL_EFFECT_ACTIONS[actionIndex];
+
+    this.onAction( action, index, value );
+  }
+
+  private onMIDIState( _ : WebMidi.MIDIConnectionEvent ) {}
   private onMIDIMessage( event : WebMidi.MIDIMessageEvent ) {
-    const pitch = event.data[1];
-    const velocity = event.data[2];
+    const [t, a, b] = event.data;
 
-    this.controls.set( pitch, velocity );
+    switch ( t ) {
+      case MIDI_NOTE :
+      this.processNote( a, b );
+      break;
 
-    this.onNote?.( pitch, velocity );
-  }
-
-  getControlValue( pitch : number ) : number {
-    return this.controls.get( pitch ) ?? 0.0;
+      case MIDI_CONTROL :
+      this.processControl( b, a );
+      break;
+    }
   }
   
   async requestMIDI() {

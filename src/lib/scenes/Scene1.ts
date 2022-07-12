@@ -41,8 +41,6 @@ function makeHoles( count : number ) : Hole[] {
   } );
 }
 
-let holes = makeHoles( 20 );
-
 export default class Scene1 extends BaseScene {
   private updateProgram : twgl.ProgramInfo;
   private renderProgram : twgl.ProgramInfo;
@@ -51,9 +49,10 @@ export default class Scene1 extends BaseScene {
   private transformFeedbacks : WebGLTransformFeedback[] = [];
   private frame : number = 0;
   private count : number = 1e6;
+  private holes = makeHoles( 10 );
 
   constructor( gl : WebGL2RenderingContext ) {
-    super( gl );
+    super( gl, 0.9, 0.0, 0.2 );
 
     this.renderProgram = twgl.createProgramInfo( gl, [renderVert, renderFrag] );
     this.updateProgram = twgl.createProgramInfo( gl, [updateVert, updateFrag], {
@@ -62,10 +61,6 @@ export default class Scene1 extends BaseScene {
         'v_velocity',
       ],
     } );
-
-    window.addEventListener( 'keydown', () => {
-      holes = makeHoles( 10 );
-    })
     
     const [positions, velocities] = makeInitialData( this.count );
 
@@ -80,6 +75,13 @@ export default class Scene1 extends BaseScene {
     }
   }
 
+  trigger1() {
+    this.holes = makeHoles( 10 );
+  }
+
+  trigger2() {}
+  trigger3() {}
+
   protected internalResize() {}
   protected internalDraw() {
     const { gl } = this;
@@ -90,7 +92,10 @@ export default class Scene1 extends BaseScene {
     gl.enable( gl.RASTERIZER_DISCARD );
     gl.useProgram( this.updateProgram.program );
     twgl.setUniforms( this.updateProgram, {
-      'u_holes' : holes,
+      'u_holes' : this.holes,
+      'u_radius' : this.mod1,
+      'u_force' : this.mod2,
+      'u_drag' : this.mod3,
     } );
 
     gl.bindVertexArray( this.vertexArrays[i].vertexArrayObject! );

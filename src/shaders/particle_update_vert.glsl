@@ -13,42 +13,45 @@ struct Hole
 	float mass;
 };
 
-uniform Hole u_holes[20];
+uniform Hole u_holes[10];
+uniform float u_radius;
+uniform float u_force;
+uniform float u_drag;
 
 #define PI 3.14159
 #define DT 60.0
-#define RADIUS 1.2
-#define ATTRACTOR_STRENGTH 1e-7
-#define GRAVITY_STRENGTH 1e-7
-#define DRAG_STRENGTH 1e-3
 
 void main()
 {
+	// Params
+	float strength = mix( 1e-7, 1e-5, u_force );
+	float drag = mix( 1e-5, 1e-2, u_drag );
+
   // Initial
 	float m = a_position.z;
 	vec2  p = a_position.xy;
 	vec2  v = a_velocity.xy;
 	
 	// Circle limits
-	p = min( length( p ), RADIUS ) * normalize( p );
+	p = min( length( p ), u_radius ) * normalize( p );
 
   // Attractors
 	vec2 f = vec2( 0.0 );
 
   for ( int i = 0; i < 10; i ++ )
 	{
-		vec2  hole = RADIUS * u_holes[i].pos;
+		vec2  hole = u_radius * u_holes[i].pos;
 		vec2  hole_v = normalize( hole - p );
 		float hole_d = distance( hole, p );
 		
-    f += ATTRACTOR_STRENGTH * m * u_holes[i].mass * hole_v / hole_d;
+    f += strength * m * u_holes[i].mass * hole_v / hole_d;
 	}
 
   // Gravity
-	vec2 g = GRAVITY_STRENGTH * normalize( p );
+	vec2 g = strength * normalize( p );
 	
 	// Apply forces
-	vec2 a = ( f + g - DRAG_STRENGTH * v ) / m;
+	vec2 a = ( f + g - drag * v ) / m;
 
   // Apply acceleration
 	vec2 new_v = v + a * DT;
