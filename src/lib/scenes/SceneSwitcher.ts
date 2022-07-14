@@ -9,13 +9,13 @@ export default class SceneSwitcher {
     this.currentScene = this.scenes[0];
   }
 
-  set mod1( value : number ) { this.currentScene.mod1 = value; }
-  set mod2( value : number ) { this.currentScene.mod2 = value; }
-  set mod3( value : number ) { this.currentScene.mod3 = value; }
+  setMod1( index : number, value : number ) { this.scenes[index].mod1 = value; }
+  setMod2( index : number, value : number ) { this.scenes[index].mod2 = value; }
+  setMod3( index : number, value : number ) { this.scenes[index].mod3 = value; }
 
-  trigger1() { this.currentScene.trigger1(); }
-  trigger2() { this.currentScene.trigger2(); }
-  trigger3() { this.currentScene.trigger3(); }
+  trigger1( index : number, value : number ) { this.scenes[index].trigger1( value ); }
+  trigger2( index : number, value : number ) { this.scenes[index].trigger2( value ); }
+  trigger3( index : number, value : number ) { this.scenes[index].trigger3( value ); }
 
   get currentOutputTexture() : WebGLTexture {
     return this.currentScene.outputTexture;

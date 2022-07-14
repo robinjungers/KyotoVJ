@@ -23,10 +23,6 @@ uniform float u_drag;
 
 void main()
 {
-	// Params
-	float strength = mix( 1e-7, 1e-5, u_force );
-	float drag = mix( 1e-5, 1e-2, u_drag );
-
   // Initial
 	float m = a_position.z;
 	vec2  p = a_position.xy;
@@ -44,14 +40,14 @@ void main()
 		vec2  hole_v = normalize( hole - p );
 		float hole_d = distance( hole, p );
 		
-    f += strength * m * u_holes[i].mass * hole_v / hole_d;
+    f += u_force * m * u_holes[i].mass * hole_v / hole_d;
 	}
 
   // Gravity
-	vec2 g = strength * normalize( p );
+	vec2 g = u_force * normalize( p );
 	
 	// Apply forces
-	vec2 a = ( f + g - drag * v ) / m;
+	vec2 a = ( f + g - u_drag * v ) / m;
 
   // Apply acceleration
 	vec2 new_v = v + a * DT;

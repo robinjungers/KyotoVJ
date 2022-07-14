@@ -4,15 +4,18 @@ import updateVert from '../../shaders/particle_update_vert.glsl?raw';
 import updateFrag from '../../shaders/particle_update_frag.glsl?raw';
 import renderVert from '../../shaders/particle_render_vert.glsl?raw';
 import renderFrag from '../../shaders/particle_render_frag.glsl?raw';
-import { randomFloat, times } from '../../utils';
+import { lerp, randomFloat, times } from '../../utils';
 
 function makeInitialData( count : number ) : [Float32Array, Float32Array] {
   const positions = new Float32Array( count * 3 );
   const velocities = new Float32Array( count * 2 );
 
   for ( let i = 0; i < count; ++ i ) {
-    positions[i * 3 + 0] = randomFloat( -0.1, 0.1 );
-    positions[i * 3 + 1] = randomFloat( -0.1, 0.1 );
+    const theta = randomFloat( 0.0, 2.0 * Math.PI );
+    const radius = randomFloat( 0.0, 1.0 );
+
+    positions[i * 3 + 0] = radius * Math.cos( theta );
+    positions[i * 3 + 1] = radius * Math.sin( theta );
     positions[i * 3 + 2] = randomFloat( 0.0, 1.0 );
     velocities[i * 2 + 0] = 0.0;
     velocities[i * 2 + 1] = 0.0;
@@ -41,7 +44,7 @@ function makeHoles( count : number ) : Hole[] {
   } );
 }
 
-export default class Scene1 extends BaseScene {
+export default class ParticleScene extends BaseScene {
   private updateProgram : twgl.ProgramInfo;
   private renderProgram : twgl.ProgramInfo;
   private buffers : twgl.BufferInfo[] = [];
@@ -79,10 +82,18 @@ export default class Scene1 extends BaseScene {
     this.holes = makeHoles( 10 );
   }
 
-  trigger2() {}
-  trigger3() {}
+  trigger2( _ : number ) {}
+  trigger3( _ : number ) {}
 
-  protected internalResize() {}
+  protected internalResize() {
+    const { gl } = this;
+
+    twgl.bindFramebufferInfo( gl, this.frameBuffer );
+    gl.clearColor( 0.85, 0.85, 0.85, 0.0 );
+    gl.clear( gl.COLOR_BUFFER_BIT );
+    twgl.bindFramebufferInfo( gl, null );
+  }
+
   protected internalDraw() {
     const { gl } = this;
 
@@ -93,9 +104,9 @@ export default class Scene1 extends BaseScene {
     gl.useProgram( this.updateProgram.program );
     twgl.setUniforms( this.updateProgram, {
       'u_holes' : this.holes,
-      'u_radius' : this.mod1,
-      'u_force' : this.mod2,
-      'u_drag' : this.mod3,
+      'u_radius' : lerp( this.mod1, 0.0, 1.0, 0.2, 1.5 ),
+      'u_force' : lerp( this.mod2, 0.0, 1.0, 1e-8, 1e-6 ),
+      'u_drag' : lerp( this.mod3, 0.0, 1.0, 1e-5, 1e-2 ),
     } );
 
     gl.bindVertexArray( this.vertexArrays[i].vertexArrayObject! );
@@ -115,7 +126,7 @@ export default class Scene1 extends BaseScene {
     gl.useProgram( null );
     gl.disable( gl.RASTERIZER_DISCARD );
 
-    gl.clearColor( 0.85, 0.85, 0.85, 1.0 );
+    gl.clearColor( 0.85, 0.85, 0.85, 0.0 );
     gl.clear( gl.COLOR_BUFFER_BIT );
 
     gl.useProgram( this.renderProgram.program );

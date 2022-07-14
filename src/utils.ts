@@ -1,3 +1,5 @@
+import * as twgl from 'twgl.js';
+
 export function lerp( x : number, a : number, b : number, c : number, d : number ) : number {
   return c + ( d - c ) * ( x - a ) / ( b - a );
 }
@@ -51,4 +53,12 @@ export function startDraw( draw : ( time : number ) => void ) : () => void {
 
 export function times<T>( length : number, fn : ( i : number ) => T ) : T[] {
   return Array.from( { length }, ( _, i ) => fn( i ) );
+}
+
+export function createQuadBufferInfo( gl : WebGL2RenderingContext ) {
+  return twgl.createBufferInfoFromArrays( gl, {
+    'a_position' : { numComponents : 2, data : [-1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0] },
+    'a_texcoord' : { numComponents : 2, data : [ 0.0,  1.0, 1.0,  1.0, 1.0, 0.0,  0.0, 0.0] },
+    indices : [0, 1, 2, 2, 3, 0],
+  } );
 }

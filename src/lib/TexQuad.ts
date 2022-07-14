@@ -1,6 +1,7 @@
 import * as twgl from 'twgl.js';
-import texVS from '../shaders/tex_vert.glsl?raw'
-import texFS from '../shaders/tex_frag.glsl?raw'
+import quadVert from '../shaders/quad_vert.glsl?raw'
+import texFrag from '../shaders/tex_frag.glsl?raw'
+import { createQuadBufferInfo } from '../utils';
 
 export default class TexQuad {
   private gl : WebGL2RenderingContext;
@@ -9,12 +10,8 @@ export default class TexQuad {
 
   constructor( gl : WebGL2RenderingContext ) {
     this.gl = gl;
-    this.quad = twgl.createBufferInfoFromArrays( gl, {
-      'a_position' : { numComponents : 2, data : [-1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0] },
-      'a_texcoord' : { numComponents : 2, data : [ 0.0,  1.0, 1.0,  1.0, 1.0, 0.0,  0.0, 0.0] },
-      indices : [0, 1, 2, 2, 3, 0],
-    } );
-    this.program = twgl.createProgramInfo( gl, [texVS, texFS] );
+    this.quad = createQuadBufferInfo( gl )
+    this.program = twgl.createProgramInfo( gl, [quadVert, texFrag] );
   
     twgl.setBuffersAndAttributes( gl, this.program, this.quad );
   }

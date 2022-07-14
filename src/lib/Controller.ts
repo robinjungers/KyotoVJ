@@ -38,12 +38,13 @@ const CONTROL_SCENE_ACTIONS =  [
 ];
 const CONTROL_EFFECT_ACTIONS =  [
   Action.Noop,
-  Action.SceneMod1,
-  Action.SceneMod2,
-  Action.SceneMod3,
+  Action.EffectMod1,
+  Action.EffectMod2,
+  Action.EffectMod3,
 ];
 
-const MIDI_NOTE = 144;
+const MIDI_NOTE_ON = 144;
+const MIDI_NOTE_OFF = 128;
 const MIDI_CONTROL = 176;
 const NUM_POSITIONS = 10;
 const NUM_TYPES = NUM_POSITIONS * 4;
@@ -121,12 +122,16 @@ export default class Controller {
     const [t, a, b] = event.data;
 
     switch ( t ) {
-      case MIDI_NOTE :
+      case MIDI_NOTE_ON :
       this.processNote( a, b );
       break;
 
+      case MIDI_NOTE_OFF :
+      this.processNote( a, 0 );
+      break;
+
       case MIDI_CONTROL :
-      this.processControl( b, a );
+      this.processControl( a, b );
       break;
     }
   }

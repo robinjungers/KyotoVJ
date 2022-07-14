@@ -27,9 +27,9 @@ export default abstract class BaseScene {
     return this.frameBuffer.attachments[0];
   }
 
-  public abstract trigger1() : void;
-  public abstract trigger2() : void;
-  public abstract trigger3() : void;
+  public abstract trigger1( value : number ) : void;
+  public abstract trigger2( value : number ) : void;
+  public abstract trigger3( value : number ) : void;
 
   protected abstract internalResize() : void;
   protected abstract internalDraw( time : number ) : void;

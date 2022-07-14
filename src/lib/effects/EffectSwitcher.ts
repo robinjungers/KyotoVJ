@@ -1,53 +1,61 @@
 import BaseEffect from './BaseEffect';
 
-
+type EffectState = {
+  effect : BaseEffect;
+  isActive : boolean;
+}
 
 export default class EffectSwitcher {
-  private currentEffects : BaseEffect[] = [];
+  private effectStates : EffectState[];
 
-  constructor(
-    private effects : BaseEffect[],
-  ) {
+  constructor( effects : BaseEffect[] ) {
+    this.effectStates = effects.map( effect => {
+      return {
+        effect,
+        isActive : true,
+      };
+    } );
   }
 
-  setMod1( index : number, value : number ) { this.effects[index].mod1 = value; }
-  setMod2( index : number, value : number ) { this.effects[index].mod2 = value; }
-  setMod3( index : number, value : number ) { this.effects[index].mod3 = value; }
+  setMod1( index : number, value : number ) { this.effectStates[index].effect.mod1 = value; }
+  setMod2( index : number, value : number ) { this.effectStates[index].effect.mod2 = value; }
+  setMod3( index : number, value : number ) { this.effectStates[index].effect.mod3 = value; }
 
-  trigger1( index : number ) { this.effects[index].trigger1(); }
-  trigger2( index : number ) { this.effects[index].trigger2(); }
-  trigger3( index : number ) { this.effects[index].trigger3(); }
+  trigger1( index : number, value : number ) { this.effectStates[index].effect.trigger1( value ); }
+  trigger2( index : number, value : number ) { this.effectStates[index].effect.trigger2( value ); }
+  trigger3( index : number, value : number ) { this.effectStates[index].effect.trigger3( value ); }
 
   get currentOutputTexture() : WebGLTexture {
-    const i = this.currentEffects.length - 1;
+    let { outputTexture } = this.effectStates[0].effect;
 
-    return this.currentEffects[i].outputTexture;
+    for ( const effectState of this.effectStates ) {
+      if ( effectState.isActive ) {
+        outputTexture = effectState.effect.outputTexture;
+      }
+    }
+
+    return outputTexture;
   }
 
   toggleSceneAtIndex( index : number, activate : boolean ) {
-    const effect = this.effects[index];
-    const foundIndex = this.currentEffects.indexOf( effect );
-
-    if ( activate ) {
-      if ( foundIndex === -1 ) {
-        this.currentEffects.push( effect );
-      }
-    } else {
-      if ( foundIndex !== -1 ) {
-        this.currentEffects.splice( foundIndex, 1 );
-      }
-    }
+    this.effectStates[index].isActive = activate;
   }
 
   resizeCurrent() {
-    this.currentEffects.forEach( effect => {
-      effect.resize();
-    } );
+    for ( const effectState of this.effectStates ) {
+      effectState.effect.resize();
+    }
   }
 
-  drawCurrent( time : number ) {
-    this.currentEffects.forEach( effect => {
-      effect.draw( time );
-    } );
+  drawCurrent( texture : WebGLTexture, time : number ) {
+    let parentTexture = texture;
+
+    for ( const effectState of this.effectStates ) {
+      if ( effectState.isActive ) {
+        effectState.effect.draw( parentTexture, time );
+
+        parentTexture = effectState.effect.outputTexture;
+      }
+    }
   }
 }
