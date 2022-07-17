@@ -3,10 +3,14 @@ import * as twgl from 'twgl.js';
 import { startDraw } from './utils';
 import Controller, { Action } from './lib/Controller';
 import TexQuad from './lib/TexQuad';
-import SceneSwitcher from './lib/scenes/SceneSwitcher';
 import ParticleScene from './lib/scenes/ParticleScene';
 import ColorMapEffect from './lib/effects/ColorMapEffect';
 import EffectSwitcher from './lib/effects/EffectSwitcher';
+import MozaicEffect from './lib/effects/MozaicEffect';
+import BlurEffect from './lib/effects/BlurEffect';
+import SharedResources from './lib/SharedResources';
+import TWEEN from '@tweenjs/tween.js';
+import { FlowGlitchEffect } from './lib/effects/FlowGlitchEffect';
 
 window.addEventListener( 'DOMContentLoaded', async () => {
   const canvas = document.getElementById( 'canvas' ) as HTMLCanvasElement;
@@ -21,32 +25,35 @@ window.addEventListener( 'DOMContentLoaded', async () => {
   
   console.debug( gl.getParameter( gl.VERSION ) );
 
-  const sceneSwitcher = new SceneSwitcher( [
-    new ParticleScene( gl ),
-  ] );
+  const sharedResources = new SharedResources( gl );
+  const scene = new ParticleScene( gl, sharedResources );
 
   const effectSwitcher = new EffectSwitcher( [
-    new ColorMapEffect( gl )
+    new ColorMapEffect( gl, sharedResources ),
+    new BlurEffect( gl, sharedResources ),
+    new MozaicEffect( gl, sharedResources ),
+    new FlowGlitchEffect( gl, sharedResources ),
   ] );
 
-  function onControl( action : Action, index : number, value : number ) {
-    console.debug( action, index, value );
+  function onControl( action : Action, targetIndex : number, paramIndex : number, value : number ) {
+    console.debug( action, targetIndex, paramIndex, value );
 
     switch ( action ) {
-      case Action.SceneToggle : return sceneSwitcher.selectSceneByIndex( index );
-      case Action.SceneTrigger1 : return sceneSwitcher.trigger1( index, value )
-      case Action.SceneTrigger2 : return sceneSwitcher.trigger2( index, value )
-      case Action.SceneTrigger3 : return sceneSwitcher.trigger3( index, value )
-      case Action.SceneMod1 : return sceneSwitcher.setMod1( index, value )
-      case Action.SceneMod2 : return sceneSwitcher.setMod2( index, value )
-      case Action.SceneMod3 : return sceneSwitcher.setMod3( index, value )
-      case Action.EffectToggle : return effectSwitcher.toggleSceneAtIndex( index, value > 0 );
-      case Action.EffectTrigger1 : return effectSwitcher.trigger1( index, value )
-      case Action.EffectTrigger2 : return effectSwitcher.trigger2( index, value )
-      case Action.EffectTrigger3 : return effectSwitcher.trigger3( index, value )
-      case Action.EffectMod1 : return effectSwitcher.setMod1( index, value )
-      case Action.EffectMod2 : return effectSwitcher.setMod2( index, value )
-      case Action.EffectMod3 : return effectSwitcher.setMod3( index, value )
+      case Action.SceneTrigger :
+      scene.params.trigger( paramIndex, value );
+      break;
+
+      case Action.SceneMod :
+      scene.params.setMod( paramIndex, value );
+      break;
+
+      case Action.EffectTrigger :
+      effectSwitcher.trigger( targetIndex, paramIndex, value );
+      break;
+
+      case Action.EffectMod :
+      effectSwitcher.setMod( targetIndex, paramIndex, value );
+      break;
     }
   }
 
@@ -58,13 +65,15 @@ window.addEventListener( 'DOMContentLoaded', async () => {
   const quad = new TexQuad( gl );
 
   startDraw( ( time : number ) => {
+    TWEEN.update( time );
+
     if ( twgl.resizeCanvasToDisplaySize( canvas, window.devicePixelRatio ) ) {
-      sceneSwitcher.resizeCurrent();
+      scene.resize();
       effectSwitcher.resizeCurrent();
     }
 
-    sceneSwitcher.drawCurrent( time );
-    effectSwitcher.drawCurrent( sceneSwitcher.currentOutputTexture, time );
+    scene.draw( time );
+    effectSwitcher.drawCurrent( scene.outputTexture, time );
     
     quad.draw( effectSwitcher.currentOutputTexture );
   } );

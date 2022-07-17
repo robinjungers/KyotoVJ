@@ -1,13 +1,14 @@
 #version 300 es
 precision mediump float;
 
+uniform float u_grey;
+uniform float u_alpha;
+
 in float v_mass;
 
 out vec4 f_color;
 
 void main()
 {
-  float grey = mix( 0.0, 0.2, v_mass * v_mass );
-
-  f_color = vec4( vec3( grey ), 0.1 );
+  f_color = vec4( vec3( u_grey ), u_alpha );
 }

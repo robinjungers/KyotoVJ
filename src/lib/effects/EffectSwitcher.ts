@@ -17,13 +17,13 @@ export default class EffectSwitcher {
     } );
   }
 
-  setMod1( index : number, value : number ) { this.effectStates[index].effect.mod1 = value; }
-  setMod2( index : number, value : number ) { this.effectStates[index].effect.mod2 = value; }
-  setMod3( index : number, value : number ) { this.effectStates[index].effect.mod3 = value; }
+  setMod( effectIndex : number, paramIndex : number, value : number ) {
+    this.effectStates[effectIndex].effect.params.setMod( paramIndex, value );
+  }
 
-  trigger1( index : number, value : number ) { this.effectStates[index].effect.trigger1( value ); }
-  trigger2( index : number, value : number ) { this.effectStates[index].effect.trigger2( value ); }
-  trigger3( index : number, value : number ) { this.effectStates[index].effect.trigger3( value ); }
+  trigger( effectIndex : number, paramIndex : number, value : number ) {
+    this.effectStates[effectIndex].effect.params.trigger( paramIndex, value );
+  }
 
   get currentOutputTexture() : WebGLTexture {
     let { outputTexture } = this.effectStates[0].effect;

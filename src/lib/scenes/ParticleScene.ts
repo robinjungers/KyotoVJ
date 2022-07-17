@@ -4,7 +4,11 @@ import updateVert from '../../shaders/particle_update_vert.glsl?raw';
 import updateFrag from '../../shaders/particle_update_frag.glsl?raw';
 import renderVert from '../../shaders/particle_render_vert.glsl?raw';
 import renderFrag from '../../shaders/particle_render_frag.glsl?raw';
-import { lerp, randomFloat, times } from '../../utils';
+import quadVert from '../../shaders/quad_vert.glsl?raw';
+import colorFrag from '../../shaders/color_frag.glsl?raw';
+import { randomFloat, times } from '../../utils';
+import Particles from '../Particles';
+import SharedResources from '../SharedResources';
 
 function makeInitialData( count : number ) : [Float32Array, Float32Array] {
   const positions = new Float32Array( count * 3 );
@@ -45,99 +49,69 @@ function makeHoles( count : number ) : Hole[] {
 }
 
 export default class ParticleScene extends BaseScene {
-  private updateProgram : twgl.ProgramInfo;
-  private renderProgram : twgl.ProgramInfo;
-  private buffers : twgl.BufferInfo[] = [];
-  private vertexArrays : twgl.VertexArrayInfo[] = [];
-  private transformFeedbacks : WebGLTransformFeedback[] = [];
-  private frame : number = 0;
-  private count : number = 1e6;
+  private particles : Particles;
+  private colorProgram : twgl.ProgramInfo;
   private holes = makeHoles( 10 );
 
-  constructor( gl : WebGL2RenderingContext ) {
-    super( gl, 0.9, 0.0, 0.2 );
+  constructor( gl : WebGL2RenderingContext, sharedResources : SharedResources ) {
+    super( gl, sharedResources );
 
-    this.renderProgram = twgl.createProgramInfo( gl, [renderVert, renderFrag] );
-    this.updateProgram = twgl.createProgramInfo( gl, [updateVert, updateFrag], {
-      transformFeedbackVaryings : [
-        'v_position',
-        'v_velocity',
-      ],
+    const count = 2e6;
+    const [
+      initialPositions,
+      initialVelocities,
+    ] = makeInitialData( count );
+
+    this.particles = new Particles(
+      gl,
+      updateVert,
+      updateFrag,
+      renderVert,
+      renderFrag,
+      initialPositions,
+      initialVelocities,
+      count,
+    );
+
+    this.colorProgram = twgl.createProgramInfo( gl, [quadVert, colorFrag] );
+
+    this.params.setMod( 0, 0.5 );
+    this.params.setMod( 1, 0.0 );
+    this.params.setMod( 2, 1.0 );
+    this.params.on( 'trigger', ( index : number ) => {
+      switch ( index ) {
+        case 0 : return this.trigger0();
+      }
     } );
-    
-    const [positions, velocities] = makeInitialData( this.count );
-
-    for ( let i = 0; i < 2; ++ i ) {
-      this.buffers[i] = twgl.createBufferInfoFromArrays( gl, {
-        'a_position' : { numComponents : 3, data : positions },
-        'a_velocity' : { numComponents : 2, data : velocities },
-      } );
-      
-      this.transformFeedbacks[i] = twgl.createTransformFeedback( gl, this.updateProgram, this.buffers[i] );
-      this.vertexArrays[i] = twgl.createVertexArrayInfo( gl, this.updateProgram, this.buffers[i] );
-    }
   }
 
-  trigger1() {
+  private trigger0() {
     this.holes = makeHoles( 10 );
   }
 
-  trigger2( _ : number ) {}
-  trigger3( _ : number ) {}
-
-  protected internalResize() {
-    const { gl } = this;
-
-    twgl.bindFramebufferInfo( gl, this.frameBuffer );
-    gl.clearColor( 0.85, 0.85, 0.85, 0.0 );
-    gl.clear( gl.COLOR_BUFFER_BIT );
-    twgl.bindFramebufferInfo( gl, null );
-  }
-
+  protected internalResize() {}
   protected internalDraw() {
     const { gl } = this;
 
-    const i = ( this.frame + 0 ) % 2;
-    const j = ( this.frame + 1 ) % 2;
-
-    gl.enable( gl.RASTERIZER_DISCARD );
-    gl.useProgram( this.updateProgram.program );
-    twgl.setUniforms( this.updateProgram, {
+    this.particles.updateWithUniforms( {
       'u_holes' : this.holes,
-      'u_radius' : lerp( this.mod1, 0.0, 1.0, 0.2, 1.5 ),
-      'u_force' : lerp( this.mod2, 0.0, 1.0, 1e-8, 1e-6 ),
-      'u_drag' : lerp( this.mod3, 0.0, 1.0, 1e-5, 1e-2 ),
+      'u_radius' : this.params.getMod( 0, 0.2, 2.0 ),
+      'u_force' : this.params.getMod( 1, 1e-8, 1e-6 ),
+      'u_drag' : this.params.getMod( 2, 1e-5, 1e-2 ),
     } );
 
-    gl.bindVertexArray( this.vertexArrays[i].vertexArrayObject! );
-    gl.bindTransformFeedback( gl.TRANSFORM_FEEDBACK, this.transformFeedbacks[j] );
-    gl.bindBufferBase( gl.TRANSFORM_FEEDBACK_BUFFER, 0, this.buffers[j].attribs!['a_position'].buffer );
-    gl.bindBufferBase( gl.TRANSFORM_FEEDBACK_BUFFER, 1, this.buffers[j].attribs!['a_velocity'].buffer );
-
-    gl.beginTransformFeedback( gl.POINTS );
-    gl.drawArrays( gl.POINTS, 0, this.count );
-    gl.endTransformFeedback();
-
-    gl.bindTransformFeedback( gl.TRANSFORM_FEEDBACK, null );
-    gl.bindBufferBase( gl.TRANSFORM_FEEDBACK_BUFFER, 0, null );
-    gl.bindBufferBase( gl.TRANSFORM_FEEDBACK_BUFFER, 1, null );
-    gl.bindVertexArray( null );
-
-    gl.useProgram( null );
-    gl.disable( gl.RASTERIZER_DISCARD );
-
-    gl.clearColor( 0.85, 0.85, 0.85, 0.0 );
-    gl.clear( gl.COLOR_BUFFER_BIT );
-
-    gl.useProgram( this.renderProgram.program );
-    twgl.setUniforms( this.renderProgram, {
+    twgl.bindFramebufferInfo( gl, this.frameBuffer );
+    this.sharedResources.drawQuadWithProgramInfo( this.colorProgram, {
+      'u_color' : [0.85, 0.85, 0.85, 0.1],
+    } );
+    this.particles.drawWithUniforms( {
       'u_ratio' : gl.canvas.width / gl.canvas.height,
+      'u_weight' : 3.0,
+      'u_grey' : 0.2,
+      'u_alpha' : 0.05,
+      'u_gridSize' : this.params.getMod( 3, 1.0, 10.0 ),
+      'u_gridAlign' : this.params.getMod( 4, 0.0, 1.0 ),
     } );
-    gl.bindVertexArray( this.vertexArrays[j].vertexArrayObject! );
-    gl.drawArrays( gl.POINTS, 0, this.count );
-    gl.bindVertexArray( null );
-    gl.useProgram( null );
-
-    ++ this.frame;
+    twgl.bindFramebufferInfo( gl, null );
   }
 }
