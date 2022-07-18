@@ -24,7 +24,7 @@ export default class BlurEffect extends BaseEffect {
     twgl.bindFramebufferInfo( this.gl, this.frameBuffer );
     this.sharedResources.drawQuadWithProgramInfo( this.program, {
       'u_ratio' : gl.canvas.width / gl.canvas.height,
-      'u_amount' : this.params.getMod( 0, 0.0, 1.0 ),
+      'u_amount' : this.params.getMod( 0, 0.01, 0.05 ),
       'u_tex' : texture,
     } );
     twgl.bindFramebufferInfo( this.gl, null );

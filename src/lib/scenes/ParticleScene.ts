@@ -5,7 +5,7 @@ import updateFrag from '../../shaders/particle_update_frag.glsl?raw';
 import renderVert from '../../shaders/particle_render_vert.glsl?raw';
 import renderFrag from '../../shaders/particle_render_frag.glsl?raw';
 import quadVert from '../../shaders/quad_vert.glsl?raw';
-import colorFrag from '../../shaders/color_frag.glsl?raw';
+import backgroundFrag from '../../shaders/background_frag.glsl?raw';
 import { randomFloat, times } from '../../utils';
 import Particles from '../Particles';
 import SharedResources from '../SharedResources';
@@ -50,7 +50,7 @@ function makeHoles( count : number ) : Hole[] {
 
 export default class ParticleScene extends BaseScene {
   private particles : Particles;
-  private colorProgram : twgl.ProgramInfo;
+  private backgroundProgram : twgl.ProgramInfo;
   private holes = makeHoles( 10 );
 
   constructor( gl : WebGL2RenderingContext, sharedResources : SharedResources ) {
@@ -73,7 +73,7 @@ export default class ParticleScene extends BaseScene {
       count,
     );
 
-    this.colorProgram = twgl.createProgramInfo( gl, [quadVert, colorFrag] );
+    this.backgroundProgram = twgl.createProgramInfo( gl, [quadVert, backgroundFrag] );
 
     this.params.setMod( 0, 0.5 );
     this.params.setMod( 1, 0.0 );
@@ -101,8 +101,10 @@ export default class ParticleScene extends BaseScene {
     } );
 
     twgl.bindFramebufferInfo( gl, this.frameBuffer );
-    this.sharedResources.drawQuadWithProgramInfo( this.colorProgram, {
+    this.sharedResources.drawQuadWithProgramInfo( this.backgroundProgram, {
       'u_color' : [0.85, 0.85, 0.85, 0.1],
+      'u_ratio' : gl.canvas.width / gl.canvas.height,
+      'u_grid' : 0.02,
     } );
     this.particles.drawWithUniforms( {
       'u_ratio' : gl.canvas.width / gl.canvas.height,

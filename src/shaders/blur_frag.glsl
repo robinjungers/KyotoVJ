@@ -20,7 +20,7 @@ void main()
 	for ( int i = 0; i < SA; i ++ )
 	{
 		float off_d = distance( uv, vec2( 0.5 ) );
-    float off_ra = max( 0.04 * u_amount * log( off_d + 0.98 ), 0.0 );
+    float off_ra = max( u_amount * log( off_d + 0.99 ), 0.0 );
 		float off_th = TWOPI * float( i ) / float( SA );
 		vec2  off = off_ra * vec2( cos( off_th ), sin( off_th ) );
 		

@@ -47,5 +47,5 @@ void main()
     ? texture( u_accum, v_uv )
     : texture( u_tex, v_uv );
 
-  f_color.rgb *= ( 1.0 + 10.0 * flow );
+  f_color.rgb += u_persistence * 10.0 * flow;
 }

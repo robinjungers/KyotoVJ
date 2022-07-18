@@ -53,6 +53,7 @@ export default class ColorMapEffect extends BaseEffect {
     twgl.bindFramebufferInfo( gl, this.frameBuffer );
     this.sharedResources.drawQuadWithProgramInfo( this.program, {
       'u_tex' : texture,
+      'u_aberration' : 0.005,
       'u_low' : this.mapLow,
       'u_high' : this.mapHigh,
       'u_split' : this.split
